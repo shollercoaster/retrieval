@@ -4,13 +4,11 @@ from transformers import Trainer, TrainingArguments
 import torch
 from datasets import Dataset, DatasetDict
 import torch.nn.functional as F
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer, RobertaTokenizer, RobertaModel
 from torch.utils.data import DataLoader
 from peft import LoraConfig
 
-from transformers import RobertaTokenizer, RobertaModel
-
-from utils import load_jsonl, CustomDataset 
+from utils import load_jsonl, CustomDataset, collate_fn, ContrastiveTrainer, _get_pooled_embeds
 
 languages = ['ruby', 'go', 'php', 'python', 'java', 'javascript']
 root_path = "../dataset/CSN"
@@ -19,6 +17,7 @@ def get_dataset(root_path, languages, split):
     for lang in languages:
         data_path = os.path.join(root_path, lang, f"{split}.jsonl")
         data_list = load_jsonl(data_path)
+        print(data_list)
 
     torch_dataset = CustomDataset(data_list)
 
@@ -39,60 +38,6 @@ def get_model(model_name='microsoft/codebert-base'):
     model.add_adapter(lora_config, adapter_name="text2code-r64")
     model.set_adapter("text2code-r64")
     return model, tokenizer
-
-def collate_fn(batch, tokenizer):
-    anchor_codes = [item[0] for item in batch]
-    positive_codes = [item[1] for item in batch]
-
-    anchor_codes_tensor = tokenizer(
-        anchor_codes,
-        truncation=True,
-        max_length=512,
-        padding="longest",
-        return_tensors="pt",
-    )
-    positive_codes_tensor = tokenizer(
-        positive_codes,
-        truncation=True,
-        max_length=512,
-        padding="longest",
-        return_tensors="pt",
-    )
-
-    collated_batch = {
-        "anchor": anchor_codes_tensor,
-        "positive": positive_codes_tensor,
-        "labels": torch.tensor(
-            range(len(anchor_codes)), dtype=torch.long
-        ),
-    }
-
-    return collated_batch
-
-def _get_pooled_embeds(model, batch, field):
-    ids = batch[field]["input_ids"]
-    mask = batch[field]["attention_mask"]
-    embeds = model(ids, attention_mask=mask)[0]
-    in_mask = mask.unsqueeze(-1).expand(embeds.size()).float()
-    pooled_embeds = torch.sum(embeds * in_mask, 1) / torch.clamp(
-        in_mask.sum(1), min=1e-6
-    )
-    return pooled_embeds
-
-class ContrastiveTrainer(Trainer):
-
-    def compute_loss(self, model, batch, return_outputs=False):
-        a = _get_pooled_embeds(model, batch, field="anchor")
-        p = _get_pooled_embeds(model, batch, field="positive")
-        # assert a.shape == (16, 768)
-        # assert p.shape == (16, 768)
-        scores = torch.stack(
-            [F.cosine_similarity(a_i.reshape(1, a_i.shape[0]), p, eps=1e-6) for a_i in a]
-        )
-        # assert scores.shape == (16,16)
-        print("Shapes for pooled embeds: ", a.shape, p.shape, scores.shape)
-        loss = F.cross_entropy(scores * 5, batch["labels"])
-        return (loss, scores) if return_outputs else loss
 
 def run(model, tokenizer):
     training_args = TrainingArguments(
