@@ -147,7 +147,7 @@ def get_model_and_dataset(model_name, language, peft_eval=False):
     model = RobertaModel.from_pretrained(model_name)
     
     if peft_eval:
-        peft_model = PeftModel.from_pretrained(model, "schaturv/microsoft-code2code-r32", adapter_name="code2code")
+        peft_model = PeftModel.from_pretrained(model, "schaturv/code2code-64", adapter_name="code2code")
         peft_model.eval()  # Set to evaluation mode
         peft_model.set_adapter("code2code")
 
@@ -184,7 +184,7 @@ def evaluation_script(data, model, tokenizer):
     
     return eval_result
 
-file = open('code2code_merged_results.txt', "a")
+file = open('../results/code2code_merged_results.txt', "a")
 for model_name in ["bigcode/starencoder"]: #"microsoft/unixcoder-base", "microsoft/graphcodebert-base", "microsoft/codebert-base"]:
     file.write(f"{model_name} results: ------------\n")
     file.write("-----------------\n")

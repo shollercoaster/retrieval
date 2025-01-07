@@ -55,7 +55,7 @@ def contrast_evaluation(text_embeds, code_embeds, img2txt):
 
 def get_model_and_dataset(model_name, language, peft_eval=False):
     print("\nCreating retrieval dataset")
-    _, _, test_dataset, code_dataset = create_dataset('../../dataset/CSN', language)
+    _, _, test_dataset, code_dataset = create_dataset('../dataset/CSN', language)
 
     test_loader, code_loader = create_loader([test_dataset, code_dataset], [None, None],
                                                 batch_size=[256, 256],
@@ -65,7 +65,7 @@ def get_model_and_dataset(model_name, language, peft_eval=False):
     model = RobertaModel.from_pretrained(model_name, trust_remote_code=True)
     
     if peft_eval:
-        peft_model = PeftModel.from_pretrained(model, "schaturv/microsoft-text2code-r32", adapter_name="text2code")
+        peft_model = PeftModel.from_pretrained(model, "schaturv/text2code-r64", adapter_name="text2code")
         peft_model.eval()  # Set to evaluation mode
         peft_model.set_adapter("text2code")
 
@@ -88,9 +88,9 @@ def evaluation_script(model, tokenizer, test_loader, code_loader):
     print(f'\n====> zero-shot test result: ', test_result)
     return test_result
 
-file = open('text2code_combined_results.txt', "a")
+file = open('../results/text2code_combined_results.txt', "a")
 
-for model_name in ["bigcode/starencoder"]: #'microsoft/unixcoder-base', 'microsoft/graphcodebert-base', 'microsoft/codebert-base']:
+for model_name in ["microsoft/unixcoder-base"]: #'microsoft/unixcoder-base', 'microsoft/graphcodebert-base', 'microsoft/codebert-base']:
     file.write(f"{model_name} results: ----------\n")
     file.write("-----------------\n")
     for language in ['ruby', 'go', 'php', 'python', 'java', 'javascript']:

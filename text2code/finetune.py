@@ -13,7 +13,7 @@ from transformers import RobertaTokenizer, RobertaModel
 from utils import load_jsonl, CustomDataset 
 
 languages = ['ruby', 'go', 'php', 'python', 'java', 'javascript']
-root_path = "../../dataset/CSN"
+root_path = "../dataset/CSN"
 
 def get_dataset(root_path, languages, split):
     for lang in languages:
@@ -35,18 +35,13 @@ def get_model(model_name='microsoft/codebert-base'):
     lora_config = LoraConfig(
         r=64,
         lora_alpha=128,
-        target_modules=["encoder.layer.4.attention.self.query",
-            "encoder.layer.4.attention.self.value",
-            "encoder.layer.6.attention.self.query",
-            "encoder.layer.6.attention.self.value",
-            "encoder.layer.10.attention.self.query",
-            "encoder.layer.10.attention.self.value"],
+        target_modules=['query', 'value'],
         lora_dropout=0.1
     )
     
     # model = get_peft_model(model, lora_config)
-    model.add_adapter(lora_config, adapter_name="starencoder-text2code-r64")
-    model.set_adapter("starencoder-text2code-r64")
+    model.add_adapter(lora_config, adapter_name="text2code-r64")
+    model.set_adapter("text2code-r64")
     return model, tokenizer
 
 def collate_fn(batch, tokenizer):
@@ -99,7 +94,7 @@ class ContrastiveTrainer(Trainer):
             [F.cosine_similarity(a_i.reshape(1, a_i.shape[0]), p, eps=1e-6) for a_i in a]
         )
         # assert scores.shape == (16,16)
-        print(a.shape, p.shape, scores.shape)
+        print("Shapes for pooled embeds: ", a.shape, p.shape, scores.shape)
         loss = F.cross_entropy(scores * 5, batch["labels"])
         return (loss, scores) if return_outputs else loss
 
@@ -125,9 +120,8 @@ def run(model, tokenizer):
     )
     trainer.train()
 
-# for model_name in ['microsoft/codebert-base', 'microsoft/graphcodebert-base', 'microsoft/unixcoder-base']:
-model_name = 'bigcode/starencoder'
-model, tokenizer = get_model(model_name)
-run(model, tokenizer)
-print(f"\n\n Training completed with {model_name}. \n\n")
-model.push_to_hub("starencoder-text2code-r64")
+for model_name in ['microsoft/codebert-base', 'microsoft/graphcodebert-base', 'microsoft/unixcoder-base']:
+    model, tokenizer = get_model(model_name)
+    run(model, tokenizer)
+    print(f"\n\n Training completed with {model_name}. \n\n")
+    model.push_to_hub("text2code-r64")
