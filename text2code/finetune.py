@@ -20,9 +20,9 @@ def get_dataset(root_path, languages, split):
         data_path = os.path.join(root_path, lang, f"{split}.jsonl")
         data_list = load_jsonl(data_path)
 
-    # merged_examples = []
-    # for lang, examples in data_list.items():
-        # merged_examples.extend(examples)
+    merged_examples = []
+    for lang, examples in data_list.items():
+        merged_examples.extend(examples)
 
     torch_dataset = CustomDataset(data_list)
 
