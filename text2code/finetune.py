@@ -20,17 +20,13 @@ def get_dataset(root_path, languages, split):
         data_path = os.path.join(root_path, lang, f"{split}.jsonl")
         data_list = load_jsonl(data_path)
 
-    merged_examples = []
-    for lang, examples in data_list.items():
-        merged_examples.extend(examples)
-
     torch_dataset = CustomDataset(data_list)
 
     return torch_dataset
 
 def get_model(model_name='microsoft/codebert-base'):
-    model = AutoModel.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = RobertaModel.from_pretrained(model_name)
+    tokenizer = RobertaTokenizer.from_pretrained(model_name)
     tokenizer.pad_token = tokenizer.eos_token
     lora_config = LoraConfig(
         r=64,
