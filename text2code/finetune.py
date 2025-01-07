@@ -115,7 +115,7 @@ def run(model, tokenizer):
         model,
         training_args,
         train_dataset=get_dataset(root_path=root_path, languages=languages, split="train"),
-        # eval_dataset=get_dataset(root_path=root_path, languages=languages, split="valid"),
+        eval_dataset=get_dataset(root_path=root_path, languages=languages, split="valid"),
         data_collator=lambda x: collate_fn(x, tokenizer),
     )
     trainer.train()

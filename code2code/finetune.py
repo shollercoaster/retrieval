@@ -39,30 +39,32 @@ root_path = "../XLCoST_data"
 
 dataset = get_dataset(root_path=root_path, languages=languages)
 
-training_args = TrainingArguments(
-    "contrastive_trainer",
-    per_device_train_batch_size=16,
-    per_device_eval_batch_size=16,
-    logging_steps=200,
-    num_train_epochs=1,
-    evaluation_strategy="no",
-    report_to="none",
-    remove_unused_columns=False,
-    warmup_steps=1000,
-    save_strategy="epoch"
-)
-trainer = ContrastiveTrainer(
-    model,
-    training_args,
-    train_dataset=dataset["train"],
-    eval_dataset=dataset["val"],
-    data_collator=lambda x: collate_fn(x, tokenizer),
-)
+def run(model, tokenizer):
+    training_args = TrainingArguments(
+        "contrastive_trainer",
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
+        logging_steps=200,
+        num_train_epochs=1,
+        evaluation_strategy="no",
+        report_to="none",
+        remove_unused_columns=False,
+        warmup_steps=1000,
+        save_strategy="epoch"
+    )
+    trainer = ContrastiveTrainer(
+        model,
+        training_args,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["val"],
+        data_collator=lambda x: collate_fn(x, tokenizer),
+    )
+    trainer.train()
 
 print("active adapter before training: ", model.active_adapters())
 
 for model_name in ['microsoft/codebert-base', 'microsoft/graphcodebert-base', 'microsoft/unixcoder-base']:
     model, tokenizer = get_model(model_name)
-    trainer.train()
+    run(model, tokenizer)
     print(f"\n\n Training completed with {model_name}. \n\n")
     model.push_to_hub("code2code-r64")
